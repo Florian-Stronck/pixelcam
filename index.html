@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixless</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --bg-dark: #11111b;
+            --bg-ctrl: #313244;
+            --bg-hover: #45475a;
+            --fg: #cdd6f4;
+            --fg-dim: #6c7086;
+            --accent: #89b4fa;
+            --accent-hover: #74a8f7;
+            --success: #a6e3a1;
+            --warning: #f9e2af;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--fg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- Header --- */
+        .header {
+            background: var(--bg-dark);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--bg-ctrl);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        .header-stats {
+            font-size: 12px;
+            color: var(--fg-dim);
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: var(--bg-ctrl);
+            color: var(--fg);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .icon-btn:hover, .icon-btn:active {
+            background: var(--bg-hover);
+        }
+
+        .icon-btn.active {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        /* --- Main Area --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .preview-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-dark);
+            padding: 10px;
+            position: relative;
+            min-height: 0;
+        }
+
+        #output {
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .raw-preview {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 80px;
+            height: 60px;
+            border-radius: 4px;
+            border: 2px solid var(--bg-ctrl);
+            object-fit: cover;
+            opacity: 0.9;
+        }
+
+        .raw-preview.hidden { display: none; }
+
+        /* --- Swatches --- */
+        .swatches-bar {
+            display: flex;
+            height: 32px;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--bg-ctrl);
+        }
+
+        .swatches-bar.hidden { display: none; }
+
+        .swatch {
+            flex: 1;
+            height: 100%;
+            transition: transform 0.1s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .swatch:hover {
+            transform: scaleY(1.2);
+            z-index: 1;
+        }
+
+        .swatch-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg);
+            color: var(--fg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+
+        .swatch:hover .swatch-tooltip {
+            opacity: 1;
+        }
+
+        /* --- Controls Panel --- */
+        .controls-panel {
+            background: var(--bg-ctrl);
+            max-height: 45vh;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
+        }
+
+        .controls-panel.collapsed {
+            max-height: 48px;
+            overflow: hidden;
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid var(--bg-hover);
+        }
+
+        .controls-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .collapse-icon {
+            transition: transform 0.3s;
+        }
+
+        .controls-panel.collapsed .collapse-icon {
+            transform: rotate(180deg);
+        }
+
+        .controls-content {
+            padding: 12px 16px 16px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .control-section {
+            display: grid;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--fg-dim);
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--bg-hover);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-row label {
+            min-width: 80px;
+            font-size: 13px;
+            color: var(--fg);
+        }
+
+        .control-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--bg-hover);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .control-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .control-row input[type="range"]:disabled {
+            opacity: 0.4;
+        }
+
+        .control-row select {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-hover);
+            color: var(--fg);
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .control-row .value {
+            min-width: 28px;
+            text-align: right;
+            font-size: 13px;
+            color: var(--accent);
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .toggle-row label {
+            font-size: 13px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-hover);
+            border-radius: 12px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--fg);
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: var(--accent);
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* --- Action Buttons --- */
+        .action-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--bg-ctrl);
+        }
+
+        .action-btn {
+            padding: 12px 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+
+        .action-btn .icon {
+            font-size: 20px;
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .action-btn.primary:active {
+            background: var(--accent-hover);
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-ctrl);
+            color: var(--fg);
+        }
+
+        .action-btn.secondary:active {
+            background: var(--bg-hover);
+        }
+
+        /* --- Toast --- */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg);
+            color: var(--fg);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* --- Presets Modal --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--bg-ctrl);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--bg-hover);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+        }
+
+        .modal-body {
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            padding: 12px;
+            background: var(--bg-hover);
+            border: none;
+            border-radius: 8px;
+            color: var(--fg);
+            font-size: 14px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .preset-btn:active {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .preset-colors {
+            display: flex;
+            gap: 2px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .preset-colors span {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* --- Hidden --- */
+        #video { display: none; }
+        .hidden { display: none !important; }
+
+        /* --- Responsive --- */
+        @media (min-width: 768px) {
+            .main {
+                flex-direction: row;
+            }
+
+            .preview-area {
+                flex: 1;
+            }
+
+            .controls-panel {
+                width: 320px;
+                max-height: none;
+                border-left: 1px solid var(--bg-hover);
+            }
+
+            .controls-panel.collapsed {
+                max-height: none;
+                width: 320px;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                width: 80px;
+                padding: 16px 8px;
+                border-top: none;
+                border-left: 1px solid var(--bg-ctrl);
+            }
+
+            .action-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <video id="video" playsinline autoplay muted></video>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">Pixless</div>
+        <div class="header-stats" id="stats">-- fps | --ms</div>
+        <div class="header-buttons">
+            <button class="icon-btn" id="rawToggle" title="Toggle raw preview">👁</button>
+            <button class="icon-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Preview Area -->
+        <div class="preview-area">
+            <canvas id="output"></canvas>
+            <canvas id="rawPreview" class="raw-preview hidden"></canvas>
+        </div>
+
+        <!-- Swatches -->
+        <div class="swatches-bar" id="swatches"></div>
+
+        <!-- Controls -->
+        <div class="controls-panel" id="controlsPanel">
+            <div class="controls-header" id="controlsHeader">
+                <h3>Controls</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="controls-content">
+                <!-- Image Settings -->
+                <div class="control-section">
+                    <div class="section-title">Image</div>
+                    <div class="control-row">
+                        <label>Resolution</label>
+                        <select id="resolution">
+                            <option value="120x90">120×90</option>
+                            <option value="160x120" selected>160×120</option>
+                            <option value="240x180">240×180</option>
+                            <option value="320x240">320×240</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Block Size</label>
+                        <input type="range" id="blockSize" min="2" max="16" value="6">
+                        <span class="value" id="blockSizeVal">6</span>
+                    </div>
+                </div>
+
+                <!-- Color Settings -->
+                <div class="control-section">
+                    <div class="section-title">Color</div>
+                    <div class="control-row">
+                        <label>Palette</label>
+                        <select id="palette">
+                            <option value="extract">Extract</option>
+                            <option value="retro">Retro</option>
+                            <option value="sepia">Sepia</option>
+                            <option value="cool">Cool</option>
+                            <option value="warm">Warm</option>
+                            <option value="gameboy">Game Boy</option>
+                            <option value="sunset">Sunset</option>
+                            <option value="ocean">Ocean</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Colors</label>
+                        <input type="range" id="colors" min="4" max="16" value="8">
+                        <span class="value" id="colorsVal">8</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Mood</label>
+                        <select id="mood">
+                            <option value="none">None</option>
+                            <option value="colorful">Colorful</option>
+                            <option value="bright">Bright</option>
+                            <option value="muted">Muted</option>
+                            <option value="deep">Deep</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dither Settings -->
+                <div class="control-section">
+                    <div class="section-title">Dithering</div>
+                    <div class="control-row">
+                        <label>Mode</label>
+                        <select id="dither">
+                            <option value="bayer">Bayer (Ordered)</option>
+                            <option value="floyd">Floyd-Steinberg</option>
+                            <option value="none">None (Flat)</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Bayer Str</label>
+                        <input type="range" id="bayerStr" min="10" max="80" value="40">
+                        <span class="value" id="bayerStrVal">40</span>
+                    </div>
+                </div>
+
+                <!-- Display Settings -->
+                <div class="control-section">
+                    <div class="section-title">Display</div>
+                    <div class="toggle-row">
+                        <label>Show Swatches</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="showSwatches" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <label>Delta Mode</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="deltaMode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <button class="action-btn secondary" id="flipBtn">
+            <span class="icon">🔄</span>
+            <span>Flip</span>
+        </button>
+        <button class="action-btn secondary" id="refreshBtn">
+            <span class="icon">🎨</span>
+            <span>Refresh</span>
+        </button>
+        <button class="action-btn primary" id="saveBtn">
+            <span class="icon">📷</span>
+            <span>Save</span>
+        </button>
+        <button class="action-btn secondary" id="presetsBtn">
+            <span class="icon">⚙️</span>
+            <span>Presets</span>
+        </button>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Presets Modal -->
+    <div class="modal-overlay" id="presetsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Quick Presets</h2>
+                <button class="icon-btn" id="closeModal">✕</button>
+            </div>
+            <div class="modal-body" id="presetsList"></div>
+        </div>
+    </div>
+
+<script>
+// --- Preset Palettes ---
+const PRESET_PALETTES = {
+    retro: [[15,12,28],[46,45,74],[38,70,83],[94,79,162],[204,153,10],[229,170,112],[165,222,246],[255,255,255]],
+    sepia: [[30,20,10],[60,42,24],[100,72,44],[150,110,70],[190,155,105],[220,195,155],[240,225,200],[250,240,225]],
+    cool: [[10,10,30],[20,30,60],[40,60,100],[70,100,150],[110,150,190],[160,195,220],[200,225,240],[235,240,250]],
+    warm: [[30,10,10],[60,25,15],[100,50,30],[150,80,50],[190,120,80],[220,165,120],[240,205,170],[250,235,215]],
+    gameboy: [[15,56,15],[48,98,48],[139,172,15],[155,188,15]],
+    sunset: [[25,10,40],[80,30,60],[150,50,70],[200,100,80],[240,150,90],[255,200,120],[255,230,180],[255,250,230]],
+    ocean: [[10,20,40],[20,50,80],[40,90,120],[70,130,160],[110,170,190],[160,200,210],[200,225,235],[235,245,250]]
+};
+
+// --- Quick Presets (combinations) ---
+const QUICK_PRESETS = [
+    { name: "Classic Pixel", blockSize: 8, colors: 8, dither: "bayer", palette: "extract", mood: "none", bayerStr: 40 },
+    { name: "Game Boy", blockSize: 4, colors: 4, dither: "bayer", palette: "gameboy", mood: "none", bayerStr: 30 },
+    { name: "Retro Photo", blockSize: 6, colors: 8, dither: "floyd", palette: "retro", mood: "none", bayerStr: 40 },
+    { name: "Dreamy", blockSize: 8, colors: 6, dither: "floyd", palette: "extract", mood: "muted", bayerStr: 40 },
+    { name: "Vibrant", blockSize: 6, colors: 10, dither: "bayer", palette: "extract", mood: "colorful", bayerStr: 50 },
+    { name: "Dark Mood", blockSize: 8, colors: 8, dither: "bayer", palette: "extract", mood: "dark", bayerStr: 35 },
+    { name: "Sepia Tone", blockSize: 6, colors: 8, dither: "floyd", palette: "sepia", mood: "none", bayerStr: 40 },
+    { name: "Sunset Vibes", blockSize: 6, colors: 8, dither: "bayer", palette: "sunset", mood: "none", bayerStr: 45 },
+    { name: "Ocean Calm", blockSize: 8, colors: 8, dither: "floyd", palette: "ocean", mood: "none", bayerStr: 40 },
+    { name: "High Contrast", blockSize: 4, colors: 6, dither: "none", palette: "extract", mood: "deep", bayerStr: 40 },
+];
+
+// --- Elements ---
+const video = document.getElementById('video');
+const output = document.getElementById('output');
+const ctx = output.getContext('2d', { willReadFrequently: true });
+const rawPreview = document.getElementById('rawPreview');
+const rawCtx = rawPreview.getContext('2d');
+
+// Hidden work canvas
+const workCanvas = document.createElement('canvas');
+const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+
+// --- State ---
+let palette = [];
+let lastExtractTime = 0;
+let facingMode = 'environment';
+let stream = null;
+let prevFrame = null;
+let prevDithered = null;
+let frameCount = 0;
+let lastFpsTime = Date.now();
+let fps = 0;
+
+// Resolution map
+const RESOLUTIONS = {
+    '120x90': [120, 90],
+    '160x120': [160, 120],
+    '240x180': [240, 180],
+    '320x240': [320, 240]
+};
+
+// --- Controls ---
+const controls = {
+    resolution: document.getElementById('resolution'),
+    blockSize: document.getElementById('blockSize'),
+    colors: document.getElementById('colors'),
+    bayerStr: document.getElementById('bayerStr'),
+    dither: document.getElementById('dither'),
+    palette: document.getElementById('palette'),
+    mood: document.getElementById('mood'),
+    showSwatches: document.getElementById('showSwatches'),
+    deltaMode: document.getElementById('deltaMode')
+};
+
+// Value displays
+const updateValue = (id) => {
+    const el = document.getElementById(id);
+    document.getElementById(id + 'Val').textContent = el.value;
+};
+
+controls.blockSize.oninput = () => updateValue('blockSize');
+controls.colors.oninput = () => { updateValue('colors'); lastExtractTime = 0; };
+controls.bayerStr.oninput = () => updateValue('bayerStr');
+controls.mood.onchange = () => lastExtractTime = 0;
+controls.palette.onchange = () => {
+    const isExtract = controls.palette.value === 'extract';
+    controls.colors.disabled = !isExtract;
+    controls.mood.disabled = !isExtract;
+    if (!isExtract) {
+        palette = PRESET_PALETTES[controls.palette.value];
+        renderSwatches(palette);
+    }
+};
+
+controls.showSwatches.onchange = () => {
+    document.getElementById('swatches').classList.toggle('hidden', !controls.showSwatches.checked);
+};
+
+// --- Bayer Matrix ---
+const BAYER_4x4 = [
+    [0, 8, 2, 10], [12, 4, 14, 6],
+    [3, 11, 1, 9], [15, 7, 13, 5]
+].map(row => row.map(v => v / 16 - 0.5));
+
+// --- Color Functions ---
+function luminance(r, g, b) {
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function saturation(r, g, b) {
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    return max === 0 ? 0 : (max - min) / max;
+}
+
+function colorDist(r1, g1, b1, r2, g2, b2) {
+    return (r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2;
+}
+
+function nearestColor(r, g, b, pal) {
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < pal.length; i++) {
+        const d = colorDist(r, g, b, pal[i][0], pal[i][1], pal[i][2]);
+        if (d < bestD) { bestD = d; best = i; }
+    }
+    return pal[best];
+}
+
+function moodScore(r, g, b, mood) {
+    if (mood === 'none') return 1;
+    const lum = luminance(r, g, b) / 255, sat = saturation(r, g, b);
+    switch (mood) {
+        case 'colorful': return Math.sqrt(sat) * (1 - Math.abs(lum - 0.5));
+        case 'bright': return Math.pow(lum, 0.7) * (0.3 + 0.7 * sat);
+        case 'muted': return Math.sqrt(1 - sat) * (1 - (lum - 0.5)**2);
+        case 'deep': return Math.pow(sat, 0.7) * Math.sqrt(1 - lum);
+        case 'dark': return Math.pow(1 - lum, 0.8);
+        default: return 1;
+    }
+}
+
+// --- Palette Extraction ---
+function extractPalette(data, w, h, nColors, mood) {
+    const colorCounts = new Map();
+    for (let i = 0; i < data.length; i += 16) {
+        const r = (data[i] >> 5) << 5;
+        const g = (data[i+1] >> 5) << 5;
+        const b = (data[i+2] >> 5) << 5;
+        const key = (r << 16) | (g << 8) | b;
+        colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
+    }
+
+    let candidates = [];
+    for (const [key, count] of colorCounts) {
+        const r = (key >> 16) & 255, g = (key >> 8) & 255, b = key & 255;
+        candidates.push({ r, g, b, count, ms: moodScore(r, g, b, mood) });
+    }
+    candidates.sort((a, b) => (b.count * b.ms) - (a.count * a.ms));
+    candidates = candidates.slice(0, Math.max(nColors * 4, 32));
+
+    if (candidates.length <= nColors) {
+        return candidates.map(c => [c.r, c.g, c.b]).sort((a,b) => luminance(...a) - luminance(...b));
+    }
+
+    const selected = [0];
+    const minDist = new Array(candidates.length).fill(Infinity);
+
+    while (selected.length < nColors) {
+        const last = candidates[selected[selected.length - 1]];
+        for (let i = 0; i < candidates.length; i++) {
+            const c = candidates[i];
+            minDist[i] = Math.min(minDist[i], colorDist(c.r, c.g, c.b, last.r, last.g, last.b));
+        }
+
+        let bestIdx = -1, bestScore = -1;
+        for (let i = 0; i < candidates.length; i++) {
+            if (selected.includes(i)) continue;
+            const importance = Math.sqrt(candidates[i].count / candidates[0].count) * candidates[i].ms;
+            const score = minDist[i] * (0.3 + 0.7 * importance);
+            if (score > bestScore) { bestScore = score; bestIdx = i; }
+        }
+        selected.push(bestIdx);
+    }
+
+    const result = selected.map(i => [candidates[i].r, candidates[i].g, candidates[i].b]);
+    result.sort((a, b) => luminance(...a) - luminance(...b));
+    return result;
+}
+
+// --- Pixelate ---
+function pixelate(data, w, h, blockSize, out) {
+    for (let by = 0; by < h; by += blockSize) {
+        for (let bx = 0; bx < w; bx += blockSize) {
+            let r = 0, g = 0, b = 0, cnt = 0;
+            const maxY = Math.min(by + blockSize, h);
+            const maxX = Math.min(bx + blockSize, w);
+
+            for (let y = by; y < maxY; y++) {
+                for (let x = bx; x < maxX; x++) {
+                    const i = (y * w + x) * 4;
+                    r += data[i]; g += data[i+1]; b += data[i+2]; cnt++;
+                }
+            }
+            r = Math.round(r / cnt); g = Math.round(g / cnt); b = Math.round(b / cnt);
+
+            for (let y = by; y < maxY; y++) {
+                for (let x = bx; x < maxX; x++) {
+                    const i = (y * w + x) * 4;
+                    out[i] = r; out[i+1] = g; out[i+2] = b; out[i+3] = 255;
+                }
+            }
+        }
+    }
+}
+
+// --- Dithering ---
+function ditherBayer(data, w, h, pal, strength, out) {
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const t = BAYER_4x4[y % 4][x % 4] * strength;
+            const r = Math.max(0, Math.min(255, data[i] + t));
+            const g = Math.max(0, Math.min(255, data[i+1] + t));
+            const b = Math.max(0, Math.min(255, data[i+2] + t));
+            const [qr, qg, qb] = nearestColor(r, g, b, pal);
+            out[i] = qr; out[i+1] = qg; out[i+2] = qb; out[i+3] = 255;
+        }
+    }
+}
+
+function ditherFloyd(data, w, h, pal, out) {
+    const buf = new Float32Array(data);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const r = Math.max(0, Math.min(255, buf[i]));
+            const g = Math.max(0, Math.min(255, buf[i+1]));
+            const b = Math.max(0, Math.min(255, buf[i+2]));
+            const [qr, qg, qb] = nearestColor(r, g, b, pal);
+            out[i] = qr; out[i+1] = qg; out[i+2] = qb; out[i+3] = 255;
+
+            const er = r - qr, eg = g - qg, eb = b - qb;
+            if (x + 1 < w) { buf[i+4] += er * 0.4375; buf[i+5] += eg * 0.4375; buf[i+6] += eb * 0.4375; }
+            if (y + 1 < h) {
+                const j = ((y+1) * w + x) * 4;
+                if (x > 0) { buf[j-4] += er * 0.1875; buf[j-3] += eg * 0.1875; buf[j-2] += eb * 0.1875; }
+                buf[j] += er * 0.3125; buf[j+1] += eg * 0.3125; buf[j+2] += eb * 0.3125;
+                if (x + 1 < w) { buf[j+4] += er * 0.0625; buf[j+5] += eg * 0.0625; buf[j+6] += eb * 0.0625; }
+            }
+        }
+    }
+}
+
+function quantizeFlat(data, w, h, pal, out) {
+    for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = nearestColor(data[i], data[i+1], data[i+2], pal);
+        out[i] = r; out[i+1] = g; out[i+2] = b; out[i+3] = 255;
+    }
+}
+
+// --- Delta Mode ---
+function applyDelta(curr, prev, prevDith, out, w, h) {
+    const threshold = 60;
+    for (let i = 0; i < curr.length; i += 4) {
+        const diff = Math.abs(curr[i] - prev[i]) + Math.abs(curr[i+1] - prev[i+1]) + Math.abs(curr[i+2] - prev[i+2]);
+        if (diff > threshold) {
+            out[i] = curr[i]; out[i+1] = curr[i+1]; out[i+2] = curr[i+2];
+        } else {
+            out[i] = prevDith[i]; out[i+1] = prevDith[i+1]; out[i+2] = prevDith[i+2];
+        }
+        out[i+3] = 255;
+    }
+}
+
+// --- Swatches ---
+function renderSwatches(pal) {
+    const container = document.getElementById('swatches');
+    container.innerHTML = '';
+    for (const [r, g, b] of pal) {
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.backgroundColor = `rgb(${r},${g},${b})`;
+        const tooltip = document.createElement('span');
+        tooltip.className = 'swatch-tooltip';
+        tooltip.textContent = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+        swatch.appendChild(tooltip);
+        swatch.onclick = () => {
+            navigator.clipboard?.writeText(tooltip.textContent);
+            showToast(`Copied ${tooltip.textContent}`);
+        };
+        container.appendChild(swatch);
+    }
+}
+
+// --- Toast ---
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// --- Main Loop ---
+function processFrame() {
+    if (video.readyState < 2) {
+        requestAnimationFrame(processFrame);
+        return;
+    }
+
+    const t0 = performance.now();
+    const [W, H] = RESOLUTIONS[controls.resolution.value];
+    const blockSize = parseInt(controls.blockSize.value);
+    const nColors = parseInt(controls.colors.value);
+    const bayerStr = parseInt(controls.bayerStr.value);
+    const ditherMode = controls.dither.value;
+    const paletteName = controls.palette.value;
+    const mood = controls.mood.value;
+    const deltaMode = controls.deltaMode.checked;
+
+    workCanvas.width = W;
+    workCanvas.height = H;
+
+    // Capture
+    workCtx.drawImage(video, 0, 0, W, H);
+    const imgData = workCtx.getImageData(0, 0, W, H);
+    const data = imgData.data;
+
+    // Pixelate
+    const pixData = new Uint8ClampedArray(data.length);
+    pixelate(data, W, H, blockSize, pixData);
+
+    // Palette
+    const now = Date.now();
+    if (paletteName === 'extract') {
+        if (palette.length !== nColors || now - lastExtractTime > 3000) {
+            palette = extractPalette(pixData, W, H, nColors, mood);
+            lastExtractTime = now;
+            renderSwatches(palette);
+        }
+    } else if (!palette.length || palette !== PRESET_PALETTES[paletteName]) {
+        palette = PRESET_PALETTES[paletteName];
+        renderSwatches(palette);
+    }
+
+    // Dither
+    const dithData = new Uint8ClampedArray(data.length);
+    if (ditherMode === 'bayer') {
+        ditherBayer(pixData, W, H, palette, bayerStr, dithData);
+    } else if (ditherMode === 'floyd') {
+        ditherFloyd(pixData, W, H, palette, dithData);
+    } else {
+        quantizeFlat(pixData, W, H, palette, dithData);
+    }
+
+    // Delta mode
+    let finalData = dithData;
+    if (deltaMode && prevFrame && prevDithered && prevFrame.length === pixData.length) {
+        const deltaData = new Uint8ClampedArray(data.length);
+        applyDelta(dithData, prevFrame, prevDithered, deltaData, W, H);
+        finalData = deltaData;
+    }
+    prevFrame = pixData.slice();
+    prevDithered = finalData.slice();
+
+    // Display
+    const scale = Math.max(1, Math.min(
+        Math.floor((window.innerWidth - 40) / W),
+        Math.floor((window.innerHeight * 0.5) / H),
+        4
+    ));
+    output.width = W * scale;
+    output.height = H * scale;
+    ctx.imageSmoothingEnabled = false;
+    workCtx.putImageData(new ImageData(finalData, W, H), 0, 0);
+    ctx.drawImage(workCanvas, 0, 0, output.width, output.height);
+
+    // Raw preview
+    if (!rawPreview.classList.contains('hidden')) {
+        rawPreview.width = 80;
+        rawPreview.height = 60;
+        rawCtx.drawImage(video, 0, 0, 80, 60);
+    }
+
+    // FPS
+    frameCount++;
+    if (now - lastFpsTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastFpsTime = now;
+    }
+    const ms = (performance.now() - t0).toFixed(0);
+    document.getElementById('stats').textContent = `${fps} fps | ${ms}ms`;
+
+    requestAnimationFrame(processFrame);
+}
+
+// --- Camera ---
+async function startCamera() {
+    try {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+            audio: false
+        });
+        video.srcObject = stream;
+        showToast(`Camera: ${facingMode === 'environment' ? 'Back' : 'Front'}`);
+    } catch (err) {
+        showToast('Camera error: ' + err.message);
+    }
+}
+
+// --- Event Handlers ---
+document.getElementById('flipBtn').onclick = () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
+};
+
+document.getElementById('refreshBtn').onclick = () => {
+    lastExtractTime = 0;
+    showToast('Palette refreshed');
+};
+
+document.getElementById('saveBtn').onclick = () => {
+    const link = document.createElement('a');
+    link.download = `pixless_${Date.now()}.png`;
+    link.href = output.toDataURL('image/png');
+    link.click();
+    showToast('Photo saved!');
+};
+
+document.getElementById('rawToggle').onclick = function() {
+    rawPreview.classList.toggle('hidden');
+    this.classList.toggle('active');
+};
+
+document.getElementById('fullscreenBtn').onclick = () => {
+    if (document.fullscreenElement) {
+        document.exitFullscreen();
+    } else {
+        document.documentElement.requestFullscreen();
+    }
+};
+
+document.getElementById('controlsHeader').onclick = () => {
+    document.getElementById('controlsPanel').classList.toggle('collapsed');
+};
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'r' || e.key === 'R') {
+        lastExtractTime = 0;
+        showToast('Palette refreshed');
+    } else if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('saveBtn').click();
+    }
+});
+
+// Presets Modal
+document.getElementById('presetsBtn').onclick = () => {
+    document.getElementById('presetsModal').classList.add('show');
+};
+
+document.getElementById('closeModal').onclick = () => {
+    document.getElementById('presetsModal').classList.remove('show');
+};
+
+document.getElementById('presetsModal').onclick = (e) => {
+    if (e.target.id === 'presetsModal') {
+        document.getElementById('presetsModal').classList.remove('show');
+    }
+};
+
+// Build presets list
+const presetsList = document.getElementById('presetsList');
+for (const preset of QUICK_PRESETS) {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+
+    const pal = preset.palette === 'extract' ?
+        [[50,50,50],[100,100,100],[150,150,150],[200,200,200]] :
+        PRESET_PALETTES[preset.palette].slice(0, 4);
+
+    const colors = document.createElement('div');
+    colors.className = 'preset-colors';
+    for (const [r,g,b] of pal) {
+        const c = document.createElement('span');
+        c.style.backgroundColor = `rgb(${r},${g},${b})`;
+        colors.appendChild(c);
+    }
+
+    btn.appendChild(colors);
+    btn.appendChild(document.createTextNode(preset.name));
+
+    btn.onclick = () => {
+        controls.blockSize.value = preset.blockSize;
+        controls.colors.value = preset.colors;
+        controls.bayerStr.value = preset.bayerStr;
+        controls.dither.value = preset.dither;
+        controls.palette.value = preset.palette;
+        controls.mood.value = preset.mood;
+
+        updateValue('blockSize');
+        updateValue('colors');
+        updateValue('bayerStr');
+
+        controls.palette.onchange();
+        lastExtractTime = 0;
+
+        document.getElementById('presetsModal').classList.remove('show');
+        showToast(`Preset: ${preset.name}`);
+    };
+
+    presetsList.appendChild(btn);
+}
+
+// --- Init ---
+startCamera();
+video.onloadedmetadata = processFrame;
+
+// Disable context menu on long press (mobile)
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body>
+</html>
