@@ -1146,4 +1146,324 @@ function quantizeFlat(data, w, h, pal, out) {
 // --- Delta Mode ---
 function applyDelta(curr, prev, prevDith, out, w, h) {
     const threshold = 60;
-    for (let i = 0; 
+    for (let i = 0; i < curr.length; i += 4) {
+        const diff = Math.abs(curr[i] - prev[i]) + Math.abs(curr[i+1] - prev[i+1]) + Math.abs(curr[i+2] - prev[i+2]);
+        if (diff > threshold) {
+            out[i] = curr[i]; out[i+1] = curr[i+1]; out[i+2] = curr[i+2];
+        } else {
+            out[i] = prevDith[i]; out[i+1] = prevDith[i+1]; out[i+2] = prevDith[i+2];
+        }
+        out[i+3] = 255;
+    }
+}
+
+// --- Swatches ---
+function renderSwatches(pal) {
+    const container = document.getElementById('swatches');
+    container.innerHTML = '';
+    for (const [r, g, b] of pal) {
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.backgroundColor = `rgb(${r},${g},${b})`;
+        const tooltip = document.createElement('span');
+        tooltip.className = 'swatch-tooltip';
+        tooltip.textContent = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+        swatch.appendChild(tooltip);
+        swatch.onclick = () => {
+            navigator.clipboard?.writeText(tooltip.textContent);
+            showToast(`Copied ${tooltip.textContent}`);
+        };
+        container.appendChild(swatch);
+    }
+}
+
+// --- Toast ---
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// --- Main Loop ---
+function processFrame() {
+    if (video.readyState < 2) {
+        requestAnimationFrame(processFrame);
+        return;
+    }
+
+    const t0 = performance.now();
+    const [W, H] = RESOLUTIONS[controls.resolution.value];
+    const blockSize = parseInt(controls.blockSize.value);
+    const nColors = parseInt(controls.colors.value);
+    const bayerStr = parseInt(controls.bayerStr.value);
+    const ditherMode = controls.dither.value;
+    const paletteName = controls.palette.value;
+    const mood = controls.mood.value;
+    const deltaMode = controls.deltaMode.checked;
+
+    workCanvas.width = W;
+    workCanvas.height = H;
+
+    // Capture
+    workCtx.drawImage(video, 0, 0, W, H);
+    const imgData = workCtx.getImageData(0, 0, W, H);
+    const data = imgData.data;
+
+    // Pixelate
+    const pixData = new Uint8ClampedArray(data.length);
+    pixelate(data, W, H, blockSize, pixData);
+
+    // Palette
+    const now = Date.now();
+    if (paletteName === 'extract') {
+        if (palette.length !== nColors || now - lastExtractTime > 3000) {
+            palette = extractPalette(pixData, W, H, nColors, mood);
+            lastExtractTime = now;
+            renderSwatches(palette);
+        }
+    } else if (!palette.length || palette !== PRESET_PALETTES[paletteName]) {
+        palette = PRESET_PALETTES[paletteName];
+        renderSwatches(palette);
+    }
+
+    // Dither
+    const dithData = new Uint8ClampedArray(data.length);
+    if (ditherMode === 'bayer') {
+        ditherBayer(pixData, W, H, palette, bayerStr, dithData);
+    } else if (ditherMode === 'floyd') {
+        ditherFloyd(pixData, W, H, palette, dithData);
+    } else {
+        quantizeFlat(pixData, W, H, palette, dithData);
+    }
+
+    // Delta mode
+    let finalData = dithData;
+    if (deltaMode && prevFrame && prevDithered && prevFrame.length === pixData.length) {
+        const deltaData = new Uint8ClampedArray(data.length);
+        applyDelta(dithData, prevFrame, prevDithered, deltaData, W, H);
+        finalData = deltaData;
+    }
+    prevFrame = pixData.slice();
+    prevDithered = finalData.slice();
+
+    // Display
+    const scale = Math.max(1, Math.min(
+        Math.floor((window.innerWidth - 40) / W),
+        Math.floor((window.innerHeight * 0.5) / H),
+        4
+    ));
+    output.width = W * scale;
+    output.height = H * scale;
+    ctx.imageSmoothingEnabled = false;
+    workCtx.putImageData(new ImageData(finalData, W, H), 0, 0);
+    ctx.drawImage(workCanvas, 0, 0, output.width, output.height);
+
+    // Raw preview
+    if (!rawPreview.classList.contains('hidden')) {
+        rawPreview.width = 80;
+        rawPreview.height = 60;
+        rawCtx.drawImage(video, 0, 0, 80, 60);
+    }
+
+    // FPS
+    frameCount++;
+    if (now - lastFpsTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastFpsTime = now;
+    }
+    const ms = (performance.now() - t0).toFixed(0);
+    document.getElementById('stats').textContent = `${fps} fps | ${ms}ms`;
+
+    requestAnimationFrame(processFrame);
+}
+
+// --- Camera ---
+async function startCamera() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorOverlay = document.getElementById('errorOverlay');
+
+    try {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+
+        loadingIndicator.classList.remove('hidden');
+        errorOverlay.classList.remove('show');
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+            audio: false
+        });
+
+        video.srcObject = stream;
+        loadingIndicator.classList.add('hidden');
+        showToast(`Camera: ${facingMode === 'environment' ? 'Back' : 'Front'}`);
+    } catch (err) {
+        loadingIndicator.classList.add('hidden');
+
+        let errorMsg = 'Camera error: ' + err.message;
+        if (err.name === 'NotAllowedError') {
+            errorMsg = 'Camera access denied. Please allow camera permissions.';
+        } else if (err.name === 'NotFoundError') {
+            errorMsg = 'No camera found. Please connect a camera device.';
+        } else if (err.name === 'NotReadableError') {
+            errorMsg = 'Camera is in use by another application.';
+        }
+
+        document.getElementById('errorMessage').textContent = errorMsg;
+        errorOverlay.classList.add('show');
+        showToast(errorMsg);
+    }
+}
+
+// --- Event Handlers ---
+document.getElementById('flipBtn').onclick = () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
+};
+
+document.getElementById('refreshBtn').onclick = () => {
+    lastExtractTime = 0;
+    showToast('Palette refreshed');
+};
+
+document.getElementById('saveBtn').onclick = () => {
+    const link = document.createElement('a');
+    link.download = `pixless_${Date.now()}.png`;
+    link.href = output.toDataURL('image/png');
+    link.click();
+    showToast('Photo saved!');
+};
+
+document.getElementById('rawToggle').onclick = function() {
+    rawPreview.classList.toggle('hidden');
+    this.classList.toggle('active');
+};
+
+document.getElementById('fullscreenBtn').onclick = () => {
+    if (document.fullscreenElement) {
+        document.exitFullscreen();
+    } else {
+        document.documentElement.requestFullscreen();
+    }
+};
+
+document.getElementById('controlsHeader').onclick = () => {
+    document.getElementById('controlsPanel').classList.toggle('collapsed');
+};
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ignore if typing in a form
+    if (e.target.matches('input, select, textarea')) return;
+
+    if (e.key === 'r' || e.key === 'R') {
+        lastExtractTime = 0;
+        showToast('Palette refreshed');
+    } else if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('saveBtn').click();
+    } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        document.getElementById('flipBtn').click();
+    } else if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        document.getElementById('presetsBtn').click();
+    } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        document.getElementById('helpModal').classList.add('show');
+    } else if (e.key === 'Escape') {
+        document.getElementById('presetsModal').classList.remove('show');
+        document.getElementById('helpModal').classList.remove('show');
+    }
+});
+
+// Presets Modal
+document.getElementById('presetsBtn').onclick = () => {
+    document.getElementById('presetsModal').classList.add('show');
+};
+
+document.getElementById('closeModal').onclick = () => {
+    document.getElementById('presetsModal').classList.remove('show');
+};
+
+document.getElementById('helpBtn').onclick = () => {
+    document.getElementById('helpModal').classList.add('show');
+};
+
+document.getElementById('closeHelp').onclick = () => {
+    document.getElementById('helpModal').classList.remove('show');
+};
+
+document.getElementById('presetsModal').onclick = (e) => {
+    if (e.target.id === 'presetsModal') {
+        document.getElementById('presetsModal').classList.remove('show');
+    }
+};
+
+document.getElementById('helpModal').onclick = (e) => {
+    if (e.target.id === 'helpModal') {
+        document.getElementById('helpModal').classList.remove('show');
+    }
+};
+
+// Build presets list
+const presetsList = document.getElementById('presetsList');
+for (const preset of QUICK_PRESETS) {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+
+    const pal = preset.palette === 'extract' ?
+        [[50,50,50],[100,100,100],[150,150,150],[200,200,200]] :
+        PRESET_PALETTES[preset.palette].slice(0, 4);
+
+    const colors = document.createElement('div');
+    colors.className = 'preset-colors';
+    for (const [r,g,b] of pal) {
+        const c = document.createElement('span');
+        c.style.backgroundColor = `rgb(${r},${g},${b})`;
+        colors.appendChild(c);
+    }
+
+    btn.appendChild(colors);
+    btn.appendChild(document.createTextNode(preset.name));
+
+    btn.onclick = () => {
+        controls.blockSize.value = preset.blockSize;
+        controls.colors.value = preset.colors;
+        controls.bayerStr.value = preset.bayerStr;
+        controls.dither.value = preset.dither;
+        controls.palette.value = preset.palette;
+        controls.mood.value = preset.mood;
+
+        updateValue('blockSize');
+        updateValue('colors');
+        updateValue('bayerStr');
+
+        controls.palette.onchange();
+        lastExtractTime = 0;
+
+        document.getElementById('presetsModal').classList.remove('show');
+        showToast(`Preset: ${preset.name}`);
+    };
+
+    presetsList.appendChild(btn);
+}
+
+// --- Error Handling ---
+document.getElementById('retryBtn').onclick = startCamera;
+
+// --- Init ---
+startCamera();
+video.onloadedmetadata = processFrame;
+
+// Disable context menu on long press (mobile)
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// Register service worker for offline support
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('data:application/javascript,self.addEventListener("install",e=>{e.waitUntil(caches.open("v1").then(c=>c.addAll(["/"])))});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})').catch(err => console.log('SW registration failed:', err));
+}
+</script>
+</body>
+</html>
