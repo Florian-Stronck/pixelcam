@@ -2,21 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pixless</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Pixless - Live camera pixelation and dithering tool. Transform your webcam feed into retro pixel art in real-time.">
+    <meta name="theme-color" content="#1e1e2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pixless">
+    <meta property="og:title" content="Pixless">
+    <meta property="og:description" content="Transform your webcam into retro pixel art with real-time dithering and pixelation">
+    <meta property="og:type" content="website">
+    <title>Pixless - Live Pixel Art Camera</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231e1e2e' width='180' height='180'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='120' y='90'>🎨</text></svg>">
+    <link rel="manifest" href="data:application/json,{\"name\":\"Pixless\",\"short_name\":\"Pixless\",\"start_url\":\"/\",\"display\":\"standalone\",\"background_color\":\"#1e1e2e\",\"theme_color\":\"#1e1e2e\",\"orientation\":\"portrait-primary\"}">
     <style>
         :root {
-            --bg: #1e1e2e;
-            --bg-dark: #11111b;
-            --bg-ctrl: #313244;
-            --bg-hover: #45475a;
-            --fg: #cdd6f4;
-            --fg-dim: #6c7086;
-            --accent: #89b4fa;
-            --accent-hover: #74a8f7;
-            --success: #a6e3a1;
-            --warning: #f9e2af;
+            --bg: #000000;
+            --bg-dark: #000000;
+            --bg-ctrl: #0d0d0d;
+            --bg-hover: #1a1a1a;
+            --fg: #ffffff;
+            --fg-dim: #909090;
+            --accent: #00d4ff;
+            --accent-hover: #00b8d4;
+            --success: #00ff88;
+            --warning: #ffaa00;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,54 +47,66 @@
         /* --- Header --- */
         .header {
             background: var(--bg-dark);
-            padding: 8px 16px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--bg-ctrl);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             z-index: 100;
         }
 
         .logo {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: -0.5px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--fg);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            text-align: center;
+            flex: 1;
         }
 
         .header-stats {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--fg-dim);
             font-family: 'SF Mono', 'Consolas', monospace;
+            position: absolute;
+            right: 60px;
         }
 
         .header-buttons {
             display: flex;
-            gap: 8px;
+            gap: 12px;
         }
 
         .icon-btn {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border: none;
-            border-radius: 8px;
-            background: var(--bg-ctrl);
-            color: var(--fg);
+            border-radius: 50%;
+            background: transparent;
+            color: var(--fg-dim);
             font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s;
+            transition: all 0.2s ease;
         }
 
-        .icon-btn:hover, .icon-btn:active {
-            background: var(--bg-hover);
+        .icon-btn:hover {
+            background: rgba(0, 212, 255, 0.08);
+            color: var(--accent);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+        }
+
+        .icon-btn:active {
+            background: rgba(0, 212, 255, 0.15);
         }
 
         .icon-btn.active {
             background: var(--accent);
-            color: var(--bg);
+            color: #000000;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
         }
 
         /* --- Main Area --- */
@@ -101,8 +123,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: var(--bg-dark);
-            padding: 10px;
+            background: #000000;
+            padding: 20px;
             position: relative;
             min-height: 0;
         }
@@ -112,20 +134,21 @@
             max-height: 100%;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            border-radius: 4px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), 0 0 60px rgba(0, 212, 255, 0.15);
         }
 
         .raw-preview {
             position: absolute;
-            bottom: 10px;
-            right: 10px;
+            bottom: 20px;
+            right: 20px;
             width: 80px;
             height: 60px;
-            border-radius: 4px;
-            border: 2px solid var(--bg-ctrl);
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.1);
             object-fit: cover;
-            opacity: 0.9;
+            opacity: 0.8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .raw-preview.hidden { display: none; }
@@ -133,9 +156,11 @@
         /* --- Swatches --- */
         .swatches-bar {
             display: flex;
-            height: 32px;
-            background: var(--bg-dark);
-            border-top: 1px solid var(--bg-ctrl);
+            height: 40px;
+            background: var(--bg-ctrl);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            gap: 2px;
+            padding: 4px 2px;
         }
 
         .swatches-bar.hidden { display: none; }
@@ -143,31 +168,35 @@
         .swatch {
             flex: 1;
             height: 100%;
-            transition: transform 0.1s;
+            transition: all 0.2s ease;
             cursor: pointer;
             position: relative;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
         }
 
         .swatch:hover {
-            transform: scaleY(1.2);
+            transform: scale(1.1);
             z-index: 1;
+            filter: brightness(1.1) drop-shadow(0 0 8px rgba(0, 212, 255, 0.3));
         }
 
         .swatch-tooltip {
             position: absolute;
             bottom: 100%;
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg);
+            transform: translateX(-50%) translateY(-8px);
+            background: rgba(5,8,18,0.95);
             color: var(--fg);
-            padding: 4px 8px;
+            padding: 6px 10px;
             border-radius: 4px;
-            font-size: 10px;
-            font-family: monospace;
+            font-size: 11px;
+            font-family: 'SF Mono', monospace;
             white-space: nowrap;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.15s;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .swatch:hover .swatch-tooltip {
@@ -180,10 +209,11 @@
             max-height: 45vh;
             overflow-y: auto;
             transition: max-height 0.3s ease;
+            border-top: 1px solid rgba(255,255,255,0.05);
         }
 
         .controls-panel.collapsed {
-            max-height: 48px;
+            max-height: 56px;
             overflow: hidden;
         }
 
@@ -191,19 +221,24 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
+            padding: 16px 20px;
             cursor: pointer;
             user-select: none;
-            border-bottom: 1px solid var(--bg-hover);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         .controls-header h3 {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--fg);
         }
 
         .collapse-icon {
             transition: transform 0.3s;
+            color: var(--fg-dim);
+            font-size: 16px;
         }
 
         .controls-panel.collapsed .collapse-icon {
@@ -211,24 +246,24 @@
         }
 
         .controls-content {
-            padding: 12px 16px 16px;
+            padding: 16px 20px 20px;
             display: grid;
-            gap: 16px;
+            gap: 20px;
         }
 
         .control-section {
             display: grid;
-            gap: 12px;
+            gap: 14px;
         }
 
         .section-title {
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             color: var(--fg-dim);
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--bg-hover);
+            padding-bottom: 0;
+            border-bottom: none;
         }
 
         .control-row {
@@ -238,29 +273,36 @@
         }
 
         .control-row label {
-            min-width: 80px;
-            font-size: 13px;
+            min-width: 75px;
+            font-size: 12px;
             color: var(--fg);
+            font-weight: 500;
         }
 
         .control-row input[type="range"] {
             flex: 1;
-            height: 6px;
+            height: 5px;
             -webkit-appearance: none;
             appearance: none;
-            background: var(--bg-hover);
+            background: linear-gradient(to right, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.15) 100%);
             border-radius: 3px;
             outline: none;
         }
 
         .control-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             background: var(--accent);
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+            transition: all 0.2s;
+        }
+
+        .control-row input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
         }
 
         .control-row input[type="range"]:disabled {
@@ -270,18 +312,30 @@
         .control-row select {
             flex: 1;
             padding: 8px 12px;
-            background: var(--bg-hover);
+            background: rgba(255,255,255,0.05);
             color: var(--fg);
-            border: none;
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-row select:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        .control-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255,255,255,0.08);
         }
 
         .control-row .value {
             min-width: 28px;
             text-align: right;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--accent);
             font-family: 'SF Mono', 'Consolas', monospace;
         }
@@ -290,17 +344,19 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 4px 0;
+            padding: 6px 0;
         }
 
         .toggle-row label {
-            font-size: 13px;
+            font-size: 12px;
+            color: var(--fg);
+            font-weight: 500;
         }
 
         .toggle {
             position: relative;
-            width: 44px;
-            height: 24px;
+            width: 48px;
+            height: 26px;
         }
 
         .toggle input {
@@ -313,75 +369,94 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-hover);
-            border-radius: 12px;
-            transition: 0.2s;
+            background: rgba(255,255,255,0.1);
+            border-radius: 13px;
+            transition: 0.25s;
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 20px;
+            width: 20px;
             left: 3px;
-            bottom: 3px;
+            bottom: 2px;
             background: var(--fg);
             border-radius: 50%;
-            transition: 0.2s;
+            transition: 0.25s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .toggle input:checked + .toggle-slider {
             background: var(--accent);
+            border-color: var(--accent);
         }
 
         .toggle input:checked + .toggle-slider:before {
-            transform: translateX(20px);
+            transform: translateX(22px);
         }
 
         /* --- Action Buttons --- */
         .action-bar {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            padding: 12px 16px;
+            gap: 10px;
+            padding: 16px 16px;
             background: var(--bg-dark);
-            border-top: 1px solid var(--bg-ctrl);
+            border-top: 1px solid rgba(255,255,255,0.05);
         }
 
         .action-btn {
-            padding: 12px 8px;
+            padding: 14px 10px;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            transition: all 0.15s;
+            gap: 6px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
         .action-btn .icon {
-            font-size: 20px;
+            font-size: 22px;
         }
 
         .action-btn.primary {
-            background: var(--accent);
-            color: var(--bg);
+            background: linear-gradient(135deg, var(--accent) 0%, #00a8cc 100%);
+            color: #000000;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+            font-weight: 700;
+        }
+
+        .action-btn.primary:hover {
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 60px rgba(0, 212, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .action-btn.primary:active {
-            background: var(--accent-hover);
+            background: linear-gradient(135deg, #00b8d4 0%, #0088aa 100%);
+            transform: translateY(0);
         }
 
         .action-btn.secondary {
-            background: var(--bg-ctrl);
+            background: rgba(255,255,255,0.08);
             color: var(--fg);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .action-btn.secondary:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.12);
         }
 
         .action-btn.secondary:active {
-            background: var(--bg-hover);
+            background: rgba(255,255,255,0.15);
         }
 
         /* --- Toast --- */
@@ -390,12 +465,13 @@
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--bg);
+            background: rgba(5,8,18,0.95);
             color: var(--fg);
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 14px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            font-size: 13px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.08);
             opacity: 0;
             transition: all 0.3s ease;
             z-index: 1000;
@@ -411,7 +487,7 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -419,6 +495,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s;
+            backdrop-filter: blur(4px);
         }
 
         .modal-overlay.show {
@@ -428,13 +505,15 @@
 
         .modal {
             background: var(--bg-ctrl);
-            border-radius: 12px;
+            border-radius: 14px;
             width: 90%;
-            max-width: 320px;
+            max-width: 340px;
             max-height: 80vh;
             overflow-y: auto;
-            transform: scale(0.9);
+            transform: scale(0.95);
             transition: transform 0.2s;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(0, 212, 255, 0.05);
         }
 
         .modal-overlay.show .modal {
@@ -442,52 +521,140 @@
         }
 
         .modal-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--bg-hover);
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .modal-header h2 {
-            font-size: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
         .modal-body {
             padding: 16px;
             display: grid;
-            gap: 8px;
+            gap: 10px;
         }
 
         .preset-btn {
-            padding: 12px;
-            background: var(--bg-hover);
-            border: none;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 8px;
             color: var(--fg);
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             text-align: left;
             display: flex;
             align-items: center;
             gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.12);
         }
 
         .preset-btn:active {
             background: var(--accent);
-            color: var(--bg);
+            color: white;
+            border-color: var(--accent);
         }
 
         .preset-colors {
             display: flex;
-            gap: 2px;
+            gap: 3px;
             border-radius: 4px;
             overflow: hidden;
         }
 
         .preset-colors span {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+            border-radius: 2px;
+        }
+
+        /* --- Loading & Errors --- */
+        .loading-indicator {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            gap: 20px;
+        }
+
+        .loading-indicator.hidden { display: none !important; }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 212, 255, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-indicator p {
+            color: var(--fg-dim);
+            font-size: 13px;
+            letter-spacing: 0.3px;
+        }
+
+        .error-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 250;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            backdrop-filter: blur(3px);
+        }
+
+        .error-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .error-content {
+            background: var(--bg-ctrl);
+            border-radius: 14px;
+            padding: 36px 28px;
+            text-align: center;
+            max-width: 340px;
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.2), inset 0 0 20px rgba(255, 170, 0, 0.05);
+        }
+
+        .error-content h2 {
+            font-size: 17px;
+            margin-bottom: 14px;
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .error-content p {
+            font-size: 13px;
+            color: var(--fg-dim);
+            margin-bottom: 28px;
+            line-height: 1.5;
         }
 
         /* --- Hidden --- */
@@ -534,11 +701,12 @@
 
     <!-- Header -->
     <header class="header">
-        <div class="logo">Pixless</div>
+        <div class="logo">🎨 Pixless</div>
         <div class="header-stats" id="stats">-- fps | --ms</div>
         <div class="header-buttons">
-            <button class="icon-btn" id="rawToggle" title="Toggle raw preview">👁</button>
-            <button class="icon-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+            <button class="icon-btn" id="rawToggle" title="Toggle raw preview" aria-label="Toggle raw preview">👁</button>
+            <button class="icon-btn" id="helpBtn" title="Keyboard shortcuts (H)" aria-label="Help">?</button>
+            <button class="icon-btn" id="fullscreenBtn" title="Fullscreen" aria-label="Fullscreen">⛶</button>
         </div>
     </header>
 
@@ -655,35 +823,69 @@
 
     <!-- Action Bar -->
     <div class="action-bar">
-        <button class="action-btn secondary" id="flipBtn">
+        <button class="action-btn secondary" id="flipBtn" aria-label="Flip camera (F)">
             <span class="icon">🔄</span>
             <span>Flip</span>
         </button>
-        <button class="action-btn secondary" id="refreshBtn">
+        <button class="action-btn secondary" id="refreshBtn" aria-label="Refresh palette (R)">
             <span class="icon">🎨</span>
             <span>Refresh</span>
         </button>
-        <button class="action-btn primary" id="saveBtn">
+        <button class="action-btn primary" id="saveBtn" aria-label="Save frame (Space)">
             <span class="icon">📷</span>
             <span>Save</span>
         </button>
-        <button class="action-btn secondary" id="presetsBtn">
+        <button class="action-btn secondary" id="presetsBtn" aria-label="Open presets">
             <span class="icon">⚙️</span>
             <span>Presets</span>
         </button>
     </div>
 
     <!-- Toast -->
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" id="loadingIndicator">
+        <div class="spinner"></div>
+        <p>Initializing camera...</p>
+    </div>
+
+    <!-- Permission Denied Overlay -->
+    <div class="error-overlay" id="errorOverlay" role="alert">
+        <div class="error-content">
+            <h2>Camera Access Required</h2>
+            <p id="errorMessage">Please allow camera access to use Pixless</p>
+            <button class="action-btn primary" id="retryBtn">Retry</button>
+        </div>
+    </div>
 
     <!-- Presets Modal -->
     <div class="modal-overlay" id="presetsModal">
         <div class="modal">
             <div class="modal-header">
                 <h2>Quick Presets</h2>
-                <button class="icon-btn" id="closeModal">✕</button>
+                <button class="icon-btn" id="closeModal" aria-label="Close presets">✕</button>
             </div>
             <div class="modal-body" id="presetsList"></div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button class="icon-btn" id="closeHelp" aria-label="Close help">✕</button>
+            </div>
+            <div class="modal-body" style="gap: 12px;">
+                <div style="text-align: left; font-size: 12px; color: var(--fg-dim);">
+                    <div style="margin-bottom: 8px;"><strong>Space</strong> - Save frame</div>
+                    <div style="margin-bottom: 8px;"><strong>R</strong> - Refresh palette</div>
+                    <div style="margin-bottom: 8px;"><strong>F</strong> - Flip camera</div>
+                    <div style="margin-bottom: 8px;"><strong>P</strong> - Open presets</div>
+                    <div style="margin-bottom: 8px;"><strong>Esc</strong> - Close modal</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -944,265 +1146,4 @@ function quantizeFlat(data, w, h, pal, out) {
 // --- Delta Mode ---
 function applyDelta(curr, prev, prevDith, out, w, h) {
     const threshold = 60;
-    for (let i = 0; i < curr.length; i += 4) {
-        const diff = Math.abs(curr[i] - prev[i]) + Math.abs(curr[i+1] - prev[i+1]) + Math.abs(curr[i+2] - prev[i+2]);
-        if (diff > threshold) {
-            out[i] = curr[i]; out[i+1] = curr[i+1]; out[i+2] = curr[i+2];
-        } else {
-            out[i] = prevDith[i]; out[i+1] = prevDith[i+1]; out[i+2] = prevDith[i+2];
-        }
-        out[i+3] = 255;
-    }
-}
-
-// --- Swatches ---
-function renderSwatches(pal) {
-    const container = document.getElementById('swatches');
-    container.innerHTML = '';
-    for (const [r, g, b] of pal) {
-        const swatch = document.createElement('div');
-        swatch.className = 'swatch';
-        swatch.style.backgroundColor = `rgb(${r},${g},${b})`;
-        const tooltip = document.createElement('span');
-        tooltip.className = 'swatch-tooltip';
-        tooltip.textContent = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
-        swatch.appendChild(tooltip);
-        swatch.onclick = () => {
-            navigator.clipboard?.writeText(tooltip.textContent);
-            showToast(`Copied ${tooltip.textContent}`);
-        };
-        container.appendChild(swatch);
-    }
-}
-
-// --- Toast ---
-function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
-}
-
-// --- Main Loop ---
-function processFrame() {
-    if (video.readyState < 2) {
-        requestAnimationFrame(processFrame);
-        return;
-    }
-
-    const t0 = performance.now();
-    const [W, H] = RESOLUTIONS[controls.resolution.value];
-    const blockSize = parseInt(controls.blockSize.value);
-    const nColors = parseInt(controls.colors.value);
-    const bayerStr = parseInt(controls.bayerStr.value);
-    const ditherMode = controls.dither.value;
-    const paletteName = controls.palette.value;
-    const mood = controls.mood.value;
-    const deltaMode = controls.deltaMode.checked;
-
-    workCanvas.width = W;
-    workCanvas.height = H;
-
-    // Capture
-    workCtx.drawImage(video, 0, 0, W, H);
-    const imgData = workCtx.getImageData(0, 0, W, H);
-    const data = imgData.data;
-
-    // Pixelate
-    const pixData = new Uint8ClampedArray(data.length);
-    pixelate(data, W, H, blockSize, pixData);
-
-    // Palette
-    const now = Date.now();
-    if (paletteName === 'extract') {
-        if (palette.length !== nColors || now - lastExtractTime > 3000) {
-            palette = extractPalette(pixData, W, H, nColors, mood);
-            lastExtractTime = now;
-            renderSwatches(palette);
-        }
-    } else if (!palette.length || palette !== PRESET_PALETTES[paletteName]) {
-        palette = PRESET_PALETTES[paletteName];
-        renderSwatches(palette);
-    }
-
-    // Dither
-    const dithData = new Uint8ClampedArray(data.length);
-    if (ditherMode === 'bayer') {
-        ditherBayer(pixData, W, H, palette, bayerStr, dithData);
-    } else if (ditherMode === 'floyd') {
-        ditherFloyd(pixData, W, H, palette, dithData);
-    } else {
-        quantizeFlat(pixData, W, H, palette, dithData);
-    }
-
-    // Delta mode
-    let finalData = dithData;
-    if (deltaMode && prevFrame && prevDithered && prevFrame.length === pixData.length) {
-        const deltaData = new Uint8ClampedArray(data.length);
-        applyDelta(dithData, prevFrame, prevDithered, deltaData, W, H);
-        finalData = deltaData;
-    }
-    prevFrame = pixData.slice();
-    prevDithered = finalData.slice();
-
-    // Display
-    const scale = Math.max(1, Math.min(
-        Math.floor((window.innerWidth - 40) / W),
-        Math.floor((window.innerHeight * 0.5) / H),
-        4
-    ));
-    output.width = W * scale;
-    output.height = H * scale;
-    ctx.imageSmoothingEnabled = false;
-    workCtx.putImageData(new ImageData(finalData, W, H), 0, 0);
-    ctx.drawImage(workCanvas, 0, 0, output.width, output.height);
-
-    // Raw preview
-    if (!rawPreview.classList.contains('hidden')) {
-        rawPreview.width = 80;
-        rawPreview.height = 60;
-        rawCtx.drawImage(video, 0, 0, 80, 60);
-    }
-
-    // FPS
-    frameCount++;
-    if (now - lastFpsTime >= 1000) {
-        fps = frameCount;
-        frameCount = 0;
-        lastFpsTime = now;
-    }
-    const ms = (performance.now() - t0).toFixed(0);
-    document.getElementById('stats').textContent = `${fps} fps | ${ms}ms`;
-
-    requestAnimationFrame(processFrame);
-}
-
-// --- Camera ---
-async function startCamera() {
-    try {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
-            audio: false
-        });
-        video.srcObject = stream;
-        showToast(`Camera: ${facingMode === 'environment' ? 'Back' : 'Front'}`);
-    } catch (err) {
-        showToast('Camera error: ' + err.message);
-    }
-}
-
-// --- Event Handlers ---
-document.getElementById('flipBtn').onclick = () => {
-    facingMode = facingMode === 'environment' ? 'user' : 'environment';
-    startCamera();
-};
-
-document.getElementById('refreshBtn').onclick = () => {
-    lastExtractTime = 0;
-    showToast('Palette refreshed');
-};
-
-document.getElementById('saveBtn').onclick = () => {
-    const link = document.createElement('a');
-    link.download = `pixless_${Date.now()}.png`;
-    link.href = output.toDataURL('image/png');
-    link.click();
-    showToast('Photo saved!');
-};
-
-document.getElementById('rawToggle').onclick = function() {
-    rawPreview.classList.toggle('hidden');
-    this.classList.toggle('active');
-};
-
-document.getElementById('fullscreenBtn').onclick = () => {
-    if (document.fullscreenElement) {
-        document.exitFullscreen();
-    } else {
-        document.documentElement.requestFullscreen();
-    }
-};
-
-document.getElementById('controlsHeader').onclick = () => {
-    document.getElementById('controlsPanel').classList.toggle('collapsed');
-};
-
-// Keyboard
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'r' || e.key === 'R') {
-        lastExtractTime = 0;
-        showToast('Palette refreshed');
-    } else if (e.key === ' ') {
-        e.preventDefault();
-        document.getElementById('saveBtn').click();
-    }
-});
-
-// Presets Modal
-document.getElementById('presetsBtn').onclick = () => {
-    document.getElementById('presetsModal').classList.add('show');
-};
-
-document.getElementById('closeModal').onclick = () => {
-    document.getElementById('presetsModal').classList.remove('show');
-};
-
-document.getElementById('presetsModal').onclick = (e) => {
-    if (e.target.id === 'presetsModal') {
-        document.getElementById('presetsModal').classList.remove('show');
-    }
-};
-
-// Build presets list
-const presetsList = document.getElementById('presetsList');
-for (const preset of QUICK_PRESETS) {
-    const btn = document.createElement('button');
-    btn.className = 'preset-btn';
-
-    const pal = preset.palette === 'extract' ?
-        [[50,50,50],[100,100,100],[150,150,150],[200,200,200]] :
-        PRESET_PALETTES[preset.palette].slice(0, 4);
-
-    const colors = document.createElement('div');
-    colors.className = 'preset-colors';
-    for (const [r,g,b] of pal) {
-        const c = document.createElement('span');
-        c.style.backgroundColor = `rgb(${r},${g},${b})`;
-        colors.appendChild(c);
-    }
-
-    btn.appendChild(colors);
-    btn.appendChild(document.createTextNode(preset.name));
-
-    btn.onclick = () => {
-        controls.blockSize.value = preset.blockSize;
-        controls.colors.value = preset.colors;
-        controls.bayerStr.value = preset.bayerStr;
-        controls.dither.value = preset.dither;
-        controls.palette.value = preset.palette;
-        controls.mood.value = preset.mood;
-
-        updateValue('blockSize');
-        updateValue('colors');
-        updateValue('bayerStr');
-
-        controls.palette.onchange();
-        lastExtractTime = 0;
-
-        document.getElementById('presetsModal').classList.remove('show');
-        showToast(`Preset: ${preset.name}`);
-    };
-
-    presetsList.appendChild(btn);
-}
-
-// --- Init ---
-startCamera();
-video.onloadedmetadata = processFrame;
-
-// Disable context menu on long press (mobile)
-document.addEventListener('contextmenu', e => e.preventDefault());
-</script>
-</body>
-</html>
+    for (let i = 0; 
